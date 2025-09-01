@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Totem de Propagandas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* CSS para garantir que tudo ocupe 100% da tela sem bordas */
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Esconde barras de rolagem */
+        width: 100%;
+        height: 100%;
+        background-color: #000; /* Fundo preto caso uma mídia falhe */
+        color: white; /* Cor do texto para mensagens de erro/loading */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: sans-serif;
+      }
+      #interstitial-screen {
+        display: flex; /* Usaremos 'none' e 'flex' para mostrar/esconder */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+
+        /* TEMA PRAIANO MODERNO */
+        background: url("https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
+          no-repeat center center/cover;
+        font-family: "Poppins", sans-serif;
+
+        /* Efeito de fade para transição suave */
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+      }
+
+      #interstitial-screen .logo {
+        font-size: 6vw; /* Tamanho da fonte responsivo */
+        font-weight: 700;
+        color: white;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); /* Sombra para legibilidade */
+      }
+
+      #clock {
+        font-size: 10vw; /* Relógio bem grande */
+        font-weight: 300;
+        color: white;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+        margin-top: 20px;
+      }
+
+      /* Estilos para as mídias (imagem e vídeo) */
+      #media-container img,
+      #media-container video {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain; /* Garante que a mídia caiba na tela sem distorcer */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="media-container">
+      <h1>Iniciando Totem...</h1>
+    </div>
+    <div id="interstitial-screen" style="display: none">
+      <div class="logo">imcosta</div>
+      <div id="clock"></div>
+    </div>
+
+    <script>
+      // --- ELEMENTOS DO DOM ---
+      const mediaContainer = document.getElementById("media-container");
+      const interstitialScreen = document.getElementById("interstitial-screen");
+      const clockElement = document.getElementById("clock");
+
+      // --- CONFIGURAÇÕES ---
+      let propagandas = [];
+      let propagandaAtualIndex = 0;
+      const interstitialIntervalo = 1 * 60; // 15 minutos em segundos
+      const interstitialDuracao = 15 * 1000; // Duração da tela intersticial (15 segundos)
+      let tempoAcumulado = 0;
+
+      // --- LÓGICA DO RELÓGIO ---
+      function startClock() {
+        // Roda a cada segundo para manter o relógio atualizado
+        setInterval(() => {
+          const now = new Date();
+          // Formato 'pt-BR' com hora e minuto (ex: 14:35)
+          clockElement.textContent = now.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }, 1000);
+      }
+
+      // --- LÓGICA PRINCIPAL DO TOTEM ---
+      async function buscarPropagandas() {
+        try {
+          const response = await fetch("http://localhost:3000/api/propagandas");
+          if (!response.ok) throw new Error("Falha ao buscar dados da API.");
+
+          propagandas = await response.json();
+
+          if (propagandas.length === 0) {
+            mediaContainer.innerHTML =
+              "<h2>Nenhuma propaganda encontrada.</h2>";
+            return;
+          }
+
+          iniciarCiclo();
+        } catch (error) {
+          console.error("Erro:", error);
+          mediaContainer.innerHTML = `<h2>Erro ao carregar: ${error.message}</h2><p>Tentando novamente em 10 segundos...</p>`;
+          setTimeout(buscarPropagandas, 10000);
+        }
+      }
+
+      function iniciarCiclo() {
+        if (propagandas.length === 0) return;
+
+        // Esconde a tela intersticial e mostra a de mídia
+        interstitialScreen.style.opacity = "0";
+        setTimeout(() => (interstitialScreen.style.display = "none"), 500); // Espera a transição acabar
+        mediaContainer.style.display = "flex";
+
+        const propaganda = propagandas[propagandaAtualIndex];
+        mediaContainer.innerHTML = ""; // Limpa o container
+
+        if (propaganda.type === "image") {
+          const imgElement = document.createElement("img");
+          imgElement.src = propaganda.url;
+          mediaContainer.appendChild(imgElement);
+        } else if (propaganda.type === "video") {
+          const videoElement = document.createElement("video");
+          videoElement.src = propaganda.url;
+          videoElement.autoplay = true;
+          videoElement.muted = true;
+          videoElement.loop = true;
+          mediaContainer.appendChild(videoElement);
+        }
+
+        // Agenda a próxima verificação/troca
+        setTimeout(verificarProximoPasso, propaganda.duration_seconds * 1000);
+      }
+
+      function verificarProximoPasso() {
+        const propagandaQueAcabou = propagandas[propagandaAtualIndex];
+        // Adiciona a duração da propaganda que acabou de ser exibida
+        tempoAcumulado += propagandaQueAcabou.duration_seconds;
+
+        // Avança o índice para a próxima propaganda
+        propagandaAtualIndex = (propagandaAtualIndex + 1) % propagandas.length;
+
+        // VERIFICA SE DEVE MOSTRAR A TELA INTERSTICIAL
+        if (tempoAcumulado >= interstitialIntervalo) {
+          mostrarInterstitial();
+        } else {
+          iniciarCiclo(); // Se não, continua para a próxima propaganda
+        }
+      }
+
+      function mostrarInterstitial() {
+        // Reseta o contador
+        tempoAcumulado = 0;
+
+        // Mostra a tela intersticial e esconde a de mídia
+        mediaContainer.style.display = "none";
+        interstitialScreen.style.display = "flex";
+        setTimeout(() => (interstitialScreen.style.opacity = "1"), 10); // Pequeno delay para a transição funcionar
+
+        // Agenda a volta para as propagandas após a duração da vinheta
+        setTimeout(iniciarCiclo, interstitialDuracao);
+      }
+
+      // --- PONTO DE PARTIDA ---
+      startClock(); // Inicia o relógio
+      buscarPropagandas(); // Busca as propagandas e inicia o ciclo
+    </script>
+  </body>
+</html>

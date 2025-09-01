@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Totem Signage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* --- Reset & Base Styles --- */
+      :root {
+        --bg-color: #f4f7fa;
+        --sidebar-bg: #1a202c;
+        --sidebar-text: #a0aec0;
+        --sidebar-text-hover: #ffffff;
+        --card-bg: #ffffff;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --primary-color: #4a5568;
+        --primary-color-dark: #2d3748;
+        --danger-color: #e53e3e;
+        --border-color: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        display: flex;
+      }
+
+      /* --- Sidebar Navigation --- */
+      .sidebar {
+        width: 250px;
+        background-color: var(--sidebar-bg);
+        color: var(--sidebar-text);
+        padding: 2rem 1rem;
+        height: 100vh;
+        position: fixed;
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar-header {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--sidebar-text-hover);
+        margin-bottom: 2rem;
+        text-align: center;
+      }
+      .sidebar-nav ul {
+        list-style-type: none;
+      }
+      .sidebar-nav li a {
+        display: flex;
+        align-items: center;
+        padding: 0.8rem 1rem;
+        text-decoration: none;
+        color: var(--sidebar-text);
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        transition: background-color 0.2s, color 0.2s;
+      }
+      .sidebar-nav li a:hover,
+      .sidebar-nav li a.active {
+        background-color: var(--primary-color);
+        color: var(--sidebar-text-hover);
+      }
+      .sidebar-nav li a svg {
+        margin-right: 0.8rem;
+        width: 20px;
+        height: 20px;
+      }
+
+      /* --- Main Content --- */
+      .main-content {
+        margin-left: 250px;
+        width: calc(100% - 250px);
+        padding: 2rem;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+      header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+      .page {
+        display: none; /* Pages are hidden by default */
+      }
+      .page.active {
+        display: block; /* Show the active page */
+      }
+
+      /* --- Cards --- */
+      .card {
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        padding: 1.5rem;
+      }
+      .card-header {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+      }
+
+      /* --- Form Elements --- */
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+      .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+      .form-group input[type="file"],
+      .form-group input[type="number"] {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-family: "Inter", sans-serif;
+      }
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      .btn-primary:hover {
+        background-color: var(--primary-color-dark);
+      }
+
+      /* --- Media List Table --- */
+      .media-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+      }
+      .media-table th,
+      .media-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .media-table th {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+      .media-table td {
+        vertical-align: middle;
+      }
+      .media-preview {
+        width: 100px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+      }
+      .btn-delete {
+        background: none;
+        border: none;
+        color: var(--danger-color);
+        cursor: pointer;
+      }
+
+      /* --- Feedback/Status Message --- */
+      #status-message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 6px;
+        display: none;
+      }
+      #status-message.success {
+        background-color: #c6f6d5;
+        color: #22543d;
+        display: block;
+      }
+      #status-message.error {
+        background-color: #fed7d7;
+        color: #822727;
+        display: block;
+      }
+      #toast-container {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1rem;
+      }
+      .toast {
+        padding: 1rem 1.5rem;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        transform: translateX(120%);
+        transition: transform 0.4s ease-in-out;
+      }
+      .toast.show {
+        transform: translateX(0);
+      }
+      .toast.success {
+        background-color: #38a169; /* Verde */
+      }
+      .toast.error {
+        background-color: #e53e3e; /* Vermelho */
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        Totem<span style="font-weight: 400">Admin</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li>
+          <a href="#dashboard" class="nav-link active">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+              ></path>
+            </svg>
+            Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="#manage" class="nav-link">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              ></path>
+            </svg>
+            Gerenciar Mídias
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <div id="toast-container"></div>
+      <section id="dashboard" class="page active">
+        <header>
+          <h1>Dashboard</h1>
+        </header>
+        <div class="card">
+          <div class="card-header">Adicionar Nova Mídia</div>
+          <form id="uploadForm">
+            <div class="form-group">
+              <label for="fileInput">Arquivo (Imagem ou Vídeo)</label>
+              <input
+                type="file"
+                id="fileInput"
+                name="propagandaFile"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="durationInput">Duração da Exibição (segundos)</label>
+              <input
+                type="number"
+                id="durationInput"
+                name="duration"
+                value="15"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar Mídia</button>
+            <div id="status-message"></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="manage" class="page">
+        <header>
+          <h1>Gerenciar Mídias</h1>
+        </header>
+        <div class="card">
+          <div class="card-header">Mídias Atuais no Totem</div>
+          <table class="media-table">
+            <thead>
+              <tr>
+                <th>Preview</th>
+                <th>Nome do Arquivo</th>
+                <th>Tipo</th>
+                <th>Duração</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="mediaList"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // --- NAVEGAÇÃO E ELEMENTOS DO DOM ---
+      const navLinks = document.querySelectorAll(".nav-link");
+      const pages = document.querySelectorAll(".page");
+      const uploadForm = document.getElementById("uploadForm");
+      const statusMessage = document.getElementById("status-message");
+      const fileInput = document.getElementById("fileInput");
+      const durationInput = document.getElementById("durationInput");
+      const mediaList = document.getElementById("mediaList");
+      const API_URL = "http://localhost:3000/api/propagandas";
+
+      // --- FUNÇÃO PARA CRIAR NOTIFICAÇÕES (TOASTS) ---
+      function showToast(message, type = "success") {
+        const toastContainer = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+
+        toastContainer.appendChild(toast);
+
+        // Animação de entrada
+        setTimeout(() => {
+          toast.classList.add("show");
+        }, 100);
+
+        // Remove o toast após 3 segundos
+        setTimeout(() => {
+          toast.classList.remove("show");
+          // Espera a animação de saída para remover o elemento do DOM
+          toast.addEventListener("transitionend", () => toast.remove());
+        }, 3000);
+      }
+
+      // --- LÓGICA DE NAVEGAÇÃO (SPA) ---
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const targetId = link.getAttribute("href").substring(1);
+
+          pages.forEach((page) => page.classList.remove("active"));
+          document.getElementById(targetId).classList.add("active");
+
+          navLinks.forEach((nav) => nav.classList.remove("active"));
+          link.classList.add("active");
+
+          if (targetId === "manage") {
+            loadMediaList();
+          }
+        });
+      });
+
+      // --- LÓGICA DE UPLOAD ---
+      uploadForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append("propagandaFile", fileInput.files[0]);
+        formData.append("duration", durationInput.value);
+
+        statusMessage.className = "";
+        statusMessage.textContent = "Enviando, por favor aguarde...";
+        statusMessage.style.display = "block";
+
+        try {
+          const response = await fetch(`${API_URL}/upload`, {
+            method: "POST",
+            body: formData,
+          });
+          const result = await response.json();
+          if (!response.ok)
+            throw new Error(result.message || "Erro no servidor.");
+
+          statusMessage.className = "success";
+          statusMessage.textContent = "Mídia enviada com sucesso!";
+          uploadForm.reset();
+        } catch (error) {
+          statusMessage.className = "error";
+          statusMessage.textContent = `Erro: ${error.message}`;
+        } finally {
+          setTimeout(() => {
+            statusMessage.style.display = "none";
+          }, 4000);
+        }
+      });
+
+      // --- LÓGICA DE DELEÇÃO ---
+      mediaList.addEventListener("click", async (e) => {
+        const deleteButton = e.target.closest(".btn-delete");
+        if (deleteButton) {
+          const mediaId = deleteButton.dataset.id;
+          const isConfirmed = confirm(
+            "Tem certeza que deseja excluir esta mídia? Esta ação não pode ser desfeita."
+          );
+          if (isConfirmed) {
+            await handleDelete(mediaId);
+          }
+        }
+      });
+
+      async function handleDelete(id) {
+        try {
+          const response = await fetch(`${API_URL}/${id}`, {
+            method: "DELETE",
+          });
+
+          const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.message || "Falha ao excluir a mídia.");
+          }
+
+          showToast("Mídia excluída com sucesso!", "success");
+          loadMediaList(); // Recarrega a lista para refletir a mudança
+        } catch (error) {
+          showToast(error.message, "error");
+        }
+      }
+
+      // --- LÓGICA PARA CARREGAR LISTA DE MÍDIAS ---
+      async function loadMediaList() {
+        mediaList.innerHTML =
+          '<tr><td colspan="5">Carregando mídias...</td></tr>';
+
+        try {
+          const response = await fetch(API_URL);
+          if (!response.ok)
+            throw new Error("Falha ao carregar os dados da API.");
+
+          const data = await response.json();
+          renderMediaList(data);
+        } catch (error) {
+          mediaList.innerHTML = `<tr><td colspan="5" style="color: red;">${error.message}</td></tr>`;
+        }
+      }
+
+      function renderMediaList(data) {
+        mediaList.innerHTML = "";
+        if (data.length === 0) {
+          mediaList.innerHTML =
+            '<tr><td colspan="5">Nenhuma mídia encontrada.</td></tr>';
+          return;
+        }
+        data.forEach((media) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                <td>
+                    ${
+                      media.type === "image"
+                        ? `<img src="${media.url}" alt="${media.fileName}" class="media-preview">`
+                        : `<video src="${media.url}#t=0.1" class="media-preview" muted preload="metadata"></video>`
+                    }
+                </td>
+                <td>${media.fileName}</td>
+                <td>${media.type}</td>
+                <td>${media.duration_seconds}s</td>
+                <td>
+                    <button class="btn-delete" data-id="${media.id}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>
+            `;
+          mediaList.appendChild(row);
+        });
+      }
+    </script>
+  </body>
+</html>
