@@ -425,28 +425,36 @@ const API_SETTINGS_URL = `${BASE_API_URL}/api/settings`;
     });
 
     // Faz o upload de uma nova mídia
-    uploadForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('propagandaFile', fileInput.files[0]);
-        formData.append('duration', durationInput.value);
-        statusMessage.className = '';
-        statusMessage.textContent = 'Enviando, por favor aguarde...';
-        statusMessage.style.display = 'block';
-        try {
-            const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Erro no servidor.');
-            statusMessage.className = 'success';
-            statusMessage.textContent = 'Mídia enviada com sucesso!';
-            uploadForm.reset();
-        } catch (error) {
-            statusMessage.className = 'error';
-            statusMessage.textContent = `Erro: ${error.message}`;
-        } finally {
-            setTimeout(() => { statusMessage.style.display = 'none'; }, 4000);
+uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('propagandaFile', fileInput.files[0]);
+    formData.append('duration', durationInput.value);
+    statusMessage.className = '';
+    statusMessage.textContent = 'Enviando, por favor aguarde...';
+    statusMessage.style.display = 'block';
+
+    try {
+        const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.message || 'Erro no servidor.');
+
+        showToast('Mídia enviada com sucesso!', 'success'); // Use o toast para feedback
+        uploadForm.reset();
+
+        // IMPORTANTE: Recarrega a lista de mídias para exibir o novo item
+        if (document.getElementById('manage').classList.contains('active')) {
+            loadMediaList();
         }
-    });
+
+    } catch (error) {
+        statusMessage.className = 'error';
+        statusMessage.textContent = `Erro: ${error.message}`;
+    } finally {
+        // Esconde a mensagem de status após um tempo
+        setTimeout(() => { statusMessage.style.display = 'none'; }, 4000);
+    }
+});
 
     // --- LÓGICA DA LISTA DE MÍDIAS (CRUD) ---
     // Delegação de eventos para os botões de editar, salvar e deletar
