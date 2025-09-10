@@ -6,11 +6,14 @@ import fs from "fs/promises";
 const projectId = process.env.GCP_PROJECT_ID;
 const bucketName = process.env.GCS_BUCKET_NAME;
 
+const credentialsJson = JSON.parse(process.env.GCS_CREDENTIALS);
+
 // Inicializa o cliente do Storage
 // A biblioteca automaticamente busca as credenciais no caminho definido
 // em GOOGLE_APPLICATION_CREDENTIALS no arquivo .env
 const storage = new Storage({
   projectId: projectId,
+  credentials: credentialsJson, // <--- ALTERAÇÃO IMPORTANTE
 });
 
 const bucket = storage.bucket(bucketName);
