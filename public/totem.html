@@ -10,61 +10,123 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;700&display=swap"
       rel="stylesheet"
     />
+
     <style>
-      /* CSS para garantir que tudo ocupe 100% da tela sem bordas */
-      body,
-      html {
+      /* --- Reset & Base Styles --- */
+      :root {
+        --info-bar-bg: #1a202c;
+        --info-bar-text: #ffffff;
+      }
+      * {
         margin: 0;
         padding: 0;
-        overflow: hidden; /* Esconde barras de rolagem */
+        box-sizing: border-box;
+      }
+      html,
+      body {
         width: 100%;
         height: 100%;
-        background-color: #000; /* Fundo preto caso uma mídia falhe */
-        color: white; /* Cor do texto para mensagens de erro/loading */
+        overflow: hidden;
+        font-family: "Poppins", sans-serif;
+      }
+
+      /* --- Layout Base --- */
+      body {
+        display: flex;
+        flex-direction: column;
+        background-color: #000;
+      }
+
+      /* --- Container de Mídia (CORRIGIDO) --- */
+      #media-container {
+        flex-grow: 1; /* Faz o container ocupar todo o espaço vertical disponível */
         display: flex;
         justify-content: center;
         align-items: center;
-        font-family: sans-serif;
+        position: relative;
+        overflow: hidden;
       }
+
+      /* Estilo para a mídia de FUNDO (desfocada) */
+      .media-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Cobre todo o espaço */
+        filter: blur(30px); /* Desfoque intenso */
+        transform: scale(1.1); /* Zoom para esconder bordas do desfoque */
+        opacity: 0.6; /* Leve transparência */
+        z-index: 1;
+      }
+
+      /* Estilo para a mídia PRINCIPAL (à frente) */
+      .media-foreground {
+        position: relative;
+        z-index: 2;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain; /* Garante que a mídia apareça inteira, sem cortes */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* Sombra para destacar */
+      }
+
+      /* --- Barra de Informações --- */
+      #info-bar {
+        background-color: var(--info-bar-bg);
+        color: var(--info-bar-text);
+        padding: 0 3rem;
+        height: 15vh; /* Altura fixa para a barra de info */
+        min-height: 80px; /* Altura mínima */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0; /* Impede que a barra encolha */
+      }
+      .info-logo {
+        font-size: 3vw;
+        font-weight: 700;
+      }
+      #info-clock {
+        font-size: 4vw;
+        font-weight: 300;
+      }
+
+      /* --- Lógica de Layout via Classe no BODY --- */
+      body.layout-fullscreen #info-bar {
+        display: none; /* Esconde a barra no modo fullscreen */
+      }
+      body.layout-infobar #info-bar {
+        display: flex; /* Garante que a barra apareça */
+      }
+
+      /* --- Tela Intersticial (Vinheta) --- */
       #interstitial-screen {
-        display: flex; /* Usaremos 'none' e 'flex' para mostrar/esconder */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 100;
+        display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        width: 100%;
-        height: 100%;
-
-        /* TEMA PRAIANO MODERNO */
         background: url("https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2")
           no-repeat center center/cover;
-        font-family: "Poppins", sans-serif;
-
-        /* Efeito de fade para transição suave */
-        opacity: 0;
+        color: white;
         transition: opacity 0.5s ease-in-out;
       }
-
       #interstitial-screen .logo {
-        font-size: 6vw; /* Tamanho da fonte responsivo */
+        font-size: 6vw;
         font-weight: 700;
-        color: white;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); /* Sombra para legibilidade */
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
       }
-
       #clock {
-        font-size: 10vw; /* Relógio bem grande */
+        font-size: 10vw;
         font-weight: 300;
-        color: white;
         text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
         margin-top: 20px;
-      }
-
-      /* Estilos para as mídias (imagem e vídeo) */
-      #media-container img,
-      #media-container video {
-        max-width: 100%;
-        max-height: 100%;
-        object-fit: contain; /* Garante que a mídia caiba na tela sem distorcer */
       }
     </style>
   </head>
@@ -72,7 +134,13 @@
     <div id="media-container">
       <h1>Iniciando Totem...</h1>
     </div>
-    <div id="interstitial-screen" style="display: none">
+
+    <div id="info-bar">
+      <div class="info-logo">ATUAL</div>
+      <div id="info-clock"></div>
+    </div>
+
+    <div id="interstitial-screen" style="display: none; opacity: 0">
       <div class="logo">imcosta</div>
       <div id="clock"></div>
     </div>
@@ -82,41 +150,53 @@
       const mediaContainer = document.getElementById("media-container");
       const interstitialScreen = document.getElementById("interstitial-screen");
       const clockElement = document.getElementById("clock");
+      const infoClockElement = document.getElementById("info-clock");
 
       // --- CONFIGURAÇÕES ---
       let propagandas = [];
       let propagandaAtualIndex = 0;
-      const interstitialIntervalo = 1 * 60; // 15 minutos em segundos
-      const interstitialDuracao = 15 * 1000; // Duração da tela intersticial (15 segundos)
+      const interstitialIntervalo = 15 * 60;
+      const interstitialDuracao = 15 * 1000;
       let tempoAcumulado = 0;
 
-      // --- LÓGICA DO RELÓGIO ---
+      // --- FUNÇÕES ---
+      async function aplicarLayout() {
+        try {
+          const response = await fetch("http://localhost:3000/api/settings");
+          const settings = await response.json();
+          document.body.className = `layout-${settings.layout}`;
+        } catch (error) {
+          console.error("Falha ao buscar layout, usando padrão infobar.", error);
+          document.body.className = "layout-infobar"; // Fallback
+        }
+      }
+
       function startClock() {
-        // Roda a cada segundo para manter o relógio atualizado
         setInterval(() => {
           const now = new Date();
-          // Formato 'pt-BR' com hora e minuto (ex: 14:35)
-          clockElement.textContent = now.toLocaleTimeString("pt-BR", {
+          const formattedTime = now.toLocaleTimeString("pt-BR", {
             hour: "2-digit",
             minute: "2-digit",
           });
+          const formattedTimeWithSeconds = now.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          if (clockElement) clockElement.textContent = formattedTime;
+          if (infoClockElement) infoClockElement.textContent = formattedTimeWithSeconds;
         }, 1000);
       }
 
-      // --- LÓGICA PRINCIPAL DO TOTEM ---
       async function buscarPropagandas() {
         try {
           const response = await fetch("http://localhost:3000/api/propagandas");
           if (!response.ok) throw new Error("Falha ao buscar dados da API.");
-
           propagandas = await response.json();
-
           if (propagandas.length === 0) {
-            mediaContainer.innerHTML =
-              "<h2>Nenhuma propaganda encontrada.</h2>";
+            mediaContainer.innerHTML = "<h2>Nenhuma propaganda encontrada.</h2>";
             return;
           }
-
           iniciarCiclo();
         } catch (error) {
           console.error("Erro:", error);
@@ -127,64 +207,71 @@
 
       function iniciarCiclo() {
         if (propagandas.length === 0) return;
-
-        // Esconde a tela intersticial e mostra a de mídia
+        
         interstitialScreen.style.opacity = "0";
-        setTimeout(() => (interstitialScreen.style.display = "none"), 500); // Espera a transição acabar
-        mediaContainer.style.display = "flex";
+        setTimeout(() => (interstitialScreen.style.display = "none"), 500);
 
         const propaganda = propagandas[propagandaAtualIndex];
         mediaContainer.innerHTML = ""; // Limpa o container
 
-        if (propaganda.type === "image") {
-          const imgElement = document.createElement("img");
-          imgElement.src = propaganda.url;
-          mediaContainer.appendChild(imgElement);
-        } else if (propaganda.type === "video") {
-          const videoElement = document.createElement("video");
-          videoElement.src = propaganda.url;
-          videoElement.autoplay = true;
-          videoElement.muted = true;
-          videoElement.loop = true;
-          mediaContainer.appendChild(videoElement);
+        // ##################################################################
+        // ## ALTERAÇÃO PRINCIPAL AQUI: Criar dois elementos de mídia      ##
+        // ##################################################################
+
+        const tipoElemento = propaganda.type === "image" ? "img" : "video";
+
+        // 1. Cria o elemento de FUNDO (desfocado)
+        const backgroundElement = document.createElement(tipoElemento);
+        backgroundElement.className = "media-background";
+        backgroundElement.src = propaganda.url;
+        
+        // 2. Cria o elemento PRINCIPAL (à frente)
+        const foregroundElement = document.createElement(tipoElemento);
+        foregroundElement.className = "media-foreground";
+        foregroundElement.src = propaganda.url;
+
+        // Se for vídeo, adiciona as propriedades de autoplay
+        if (tipoElemento === "video") {
+          backgroundElement.autoplay = foregroundElement.autoplay = true;
+          backgroundElement.muted = foregroundElement.muted = true;
+          backgroundElement.loop = foregroundElement.loop = true;
+          backgroundElement.playsInline = foregroundElement.playsInline = true;
         }
 
-        // Agenda a próxima verificação/troca
+        // 3. Adiciona ambos ao container
+        mediaContainer.appendChild(backgroundElement);
+        mediaContainer.appendChild(foregroundElement);
+        // ##################################################################
+        
         setTimeout(verificarProximoPasso, propaganda.duration_seconds * 1000);
       }
 
       function verificarProximoPasso() {
         const propagandaQueAcabou = propagandas[propagandaAtualIndex];
-        // Adiciona a duração da propaganda que acabou de ser exibida
         tempoAcumulado += propagandaQueAcabou.duration_seconds;
-
-        // Avança o índice para a próxima propaganda
         propagandaAtualIndex = (propagandaAtualIndex + 1) % propagandas.length;
-
-        // VERIFICA SE DEVE MOSTRAR A TELA INTERSTICIAL
         if (tempoAcumulado >= interstitialIntervalo) {
           mostrarInterstitial();
         } else {
-          iniciarCiclo(); // Se não, continua para a próxima propaganda
+          iniciarCiclo();
         }
       }
 
       function mostrarInterstitial() {
-        // Reseta o contador
         tempoAcumulado = 0;
-
-        // Mostra a tela intersticial e esconde a de mídia
-        mediaContainer.style.display = "none";
         interstitialScreen.style.display = "flex";
-        setTimeout(() => (interstitialScreen.style.opacity = "1"), 10); // Pequeno delay para a transição funcionar
-
-        // Agenda a volta para as propagandas após a duração da vinheta
+        setTimeout(() => (interstitialScreen.style.opacity = "1"), 10);
         setTimeout(iniciarCiclo, interstitialDuracao);
       }
 
       // --- PONTO DE PARTIDA ---
-      startClock(); // Inicia o relógio
-      buscarPropagandas(); // Busca as propagandas e inicia o ciclo
+      async function iniciar() {
+        await aplicarLayout();
+        startClock();
+        buscarPropagandas();
+      }
+
+      iniciar();
     </script>
   </body>
 </html>

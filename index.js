@@ -4,7 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
+import settingsRoutes from './src/routes/settings.routes.js'; // NOVO IMPORT
 // Importa nossas rotas
 import propagandaRoutes from './src/routes/propaganda.routes.js';
 
@@ -24,8 +24,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Rotas da API
 app.use('/api/propagandas', propagandaRoutes);
+app.use('/api/settings', settingsRoutes); 
 
 // Inicia o servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });

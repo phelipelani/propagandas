@@ -280,6 +280,7 @@
     <main class="main-content">
       <div id="toast-container"></div>
       <section id="dashboard" class="page active">
+        
         <header>
           <h1>Dashboard</h1>
         </header>
@@ -308,6 +309,23 @@
             <button type="submit" class="btn btn-primary">Enviar Mídia</button>
             <div id="status-message"></div>
           </form>
+          </div> <div class="card" style="margin-top: 2rem;">
+    <div class="card-header">Configurações de Layout do Totem</div>
+    <form id="settingsForm">
+        <div class="form-group">
+            <p>Selecione como as mídias devem ser exibidas no totem:</p>
+            <div style="margin-top: 1rem; display: flex; gap: 2rem;">
+                <label>
+                    <input type="radio" name="layout" value="fullscreen" checked> Tela Cheia
+                </label>
+                <label>
+                    <input type="radio" name="layout" value="infobar"> Com Barra de Informações
+                </label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar Configurações</button>
+    </form>
+</div>
         </div>
       </section>
 
@@ -333,169 +351,218 @@
       </section>
     </main>
 
-    <script>
-      // --- NAVEGAÇÃO E ELEMENTOS DO DOM ---
-      const navLinks = document.querySelectorAll(".nav-link");
-      const pages = document.querySelectorAll(".page");
-      const uploadForm = document.getElementById("uploadForm");
-      const statusMessage = document.getElementById("status-message");
-      const fileInput = document.getElementById("fileInput");
-      const durationInput = document.getElementById("durationInput");
-      const mediaList = document.getElementById("mediaList");
-      const API_URL = "http://localhost:3000/api/propagandas";
+<script>
+    // --- NAVEGAÇÃO E ELEMENTOS DO DOM ---
+    const navLinks = document.querySelectorAll('.nav-link');
+    const pages = document.querySelectorAll('.page');
+    const uploadForm = document.getElementById('uploadForm');
+    const settingsForm = document.getElementById('settingsForm');
+    const statusMessage = document.getElementById('status-message');
+    const fileInput = document.getElementById('fileInput');
+    const durationInput = document.getElementById('durationInput');
+    const mediaList = document.getElementById('mediaList');
+    const API_URL = 'http://localhost:3000/api/propagandas';
+    const API_SETTINGS_URL = 'http://localhost:3000/api/settings';
 
-      // --- FUNÇÃO PARA CRIAR NOTIFICAÇÕES (TOASTS) ---
-      function showToast(message, type = "success") {
-        const toastContainer = document.getElementById("toast-container");
-        const toast = document.createElement("div");
+    // --- FUNÇÃO PARA CRIAR NOTIFICAÇÕES (TOASTS) ---
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toast-container');
+        const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         toast.textContent = message;
-
         toastContainer.appendChild(toast);
-
-        // Animação de entrada
+        setTimeout(() => toast.classList.add('show'), 100);
         setTimeout(() => {
-          toast.classList.add("show");
-        }, 100);
-
-        // Remove o toast após 3 segundos
-        setTimeout(() => {
-          toast.classList.remove("show");
-          // Espera a animação de saída para remover o elemento do DOM
-          toast.addEventListener("transitionend", () => toast.remove());
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', () => toast.remove());
         }, 3000);
-      }
+    }
 
-      // --- LÓGICA DE NAVEGAÇÃO (SPA) ---
-      navLinks.forEach((link) => {
-        link.addEventListener("click", (e) => {
-          e.preventDefault();
-          const targetId = link.getAttribute("href").substring(1);
+    // --- LÓGICA DE INICIALIZAÇÃO E NAVEGAÇÃO ---
+    // Carrega as configurações de layout quando a página é aberta pela primeira vez
+    document.addEventListener('DOMContentLoaded', loadCurrentSettings);
 
-          pages.forEach((page) => page.classList.remove("active"));
-          document.getElementById(targetId).classList.add("active");
-
-          navLinks.forEach((nav) => nav.classList.remove("active"));
-          link.classList.add("active");
-
-          if (targetId === "manage") {
-            loadMediaList();
-          }
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+            pages.forEach(page => page.classList.remove('active'));
+            document.getElementById(targetId).classList.add('active');
+            navLinks.forEach(nav => nav.classList.remove('active'));
+            link.classList.add('active');
+            if (targetId === 'manage') {
+                loadMediaList();
+            }
         });
-      });
+    });
 
-      // --- LÓGICA DE UPLOAD ---
-      uploadForm.addEventListener("submit", async (e) => {
+    // --- LÓGICA DOS FORMULÁRIOS ---
+    // Salva as configurações de layout
+    settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const selectedLayout = document.querySelector('input[name="layout"]:checked').value;
+        try {
+            const response = await fetch(API_SETTINGS_URL, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ layout: selectedLayout })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            showToast('Layout salvo com sucesso!', 'success');
+        } catch(error) {
+            showToast(error.message, 'error');
+        }
+    });
+
+    // Faz o upload de uma nova mídia
+    uploadForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData();
-        formData.append("propagandaFile", fileInput.files[0]);
-        formData.append("duration", durationInput.value);
-
-        statusMessage.className = "";
-        statusMessage.textContent = "Enviando, por favor aguarde...";
-        statusMessage.style.display = "block";
-
+        formData.append('propagandaFile', fileInput.files[0]);
+        formData.append('duration', durationInput.value);
+        statusMessage.className = '';
+        statusMessage.textContent = 'Enviando, por favor aguarde...';
+        statusMessage.style.display = 'block';
         try {
-          const response = await fetch(`${API_URL}/upload`, {
-            method: "POST",
-            body: formData,
-          });
-          const result = await response.json();
-          if (!response.ok)
-            throw new Error(result.message || "Erro no servidor.");
-
-          statusMessage.className = "success";
-          statusMessage.textContent = "Mídia enviada com sucesso!";
-          uploadForm.reset();
+            const response = await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Erro no servidor.');
+            statusMessage.className = 'success';
+            statusMessage.textContent = 'Mídia enviada com sucesso!';
+            uploadForm.reset();
         } catch (error) {
-          statusMessage.className = "error";
-          statusMessage.textContent = `Erro: ${error.message}`;
+            statusMessage.className = 'error';
+            statusMessage.textContent = `Erro: ${error.message}`;
         } finally {
-          setTimeout(() => {
-            statusMessage.style.display = "none";
-          }, 4000);
+            setTimeout(() => { statusMessage.style.display = 'none'; }, 4000);
         }
-      });
+    });
 
-      // --- LÓGICA DE DELEÇÃO ---
-      mediaList.addEventListener("click", async (e) => {
-        const deleteButton = e.target.closest(".btn-delete");
-        if (deleteButton) {
-          const mediaId = deleteButton.dataset.id;
-          const isConfirmed = confirm(
-            "Tem certeza que deseja excluir esta mídia? Esta ação não pode ser desfeita."
-          );
-          if (isConfirmed) {
-            await handleDelete(mediaId);
-          }
+    // --- LÓGICA DA LISTA DE MÍDIAS (CRUD) ---
+    // Delegação de eventos para os botões de editar, salvar e deletar
+    mediaList.addEventListener('click', async (e) => {
+        const targetButton = e.target.closest('button');
+        if (!targetButton) return;
+        const mediaId = targetButton.dataset.id;
+        if (targetButton.classList.contains('btn-delete')) {
+            const isConfirmed = confirm('Tem certeza que deseja excluir esta mídia? Esta ação não pode ser desfeita.');
+            if (isConfirmed) await handleDelete(mediaId);
         }
-      });
+        if (targetButton.classList.contains('btn-edit')) {
+            handleEdit(targetButton);
+        }
+        if (targetButton.classList.contains('btn-save')) {
+            await handleSave(targetButton);
+        }
+    });
 
-      async function handleDelete(id) {
+    // Carrega a lista de mídias da API
+    async function loadMediaList() {
+        mediaList.innerHTML = '<tr><td colspan="5">Carregando mídias...</td></tr>';
         try {
-          const response = await fetch(`${API_URL}/${id}`, {
-            method: "DELETE",
-          });
-
-          const result = await response.json();
-
-          if (!response.ok) {
-            throw new Error(result.message || "Falha ao excluir a mídia.");
-          }
-
-          showToast("Mídia excluída com sucesso!", "success");
-          loadMediaList(); // Recarrega a lista para refletir a mudança
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error('Falha ao carregar os dados da API.');
+            const data = await response.json();
+            renderMediaList(data);
         } catch (error) {
-          showToast(error.message, "error");
+            mediaList.innerHTML = `<tr><td colspan="5" style="color: red;">${error.message}</td></tr>`;
         }
-      }
+    }
 
-      // --- LÓGICA PARA CARREGAR LISTA DE MÍDIAS ---
-      async function loadMediaList() {
-        mediaList.innerHTML =
-          '<tr><td colspan="5">Carregando mídias...</td></tr>';
-
+    // Carrega as configurações atuais da API
+    async function loadCurrentSettings() {
         try {
-          const response = await fetch(API_URL);
-          if (!response.ok)
-            throw new Error("Falha ao carregar os dados da API.");
-
-          const data = await response.json();
-          renderMediaList(data);
+            const response = await fetch(API_SETTINGS_URL);
+            const settings = await response.json();
+            document.querySelector(`input[name="layout"][value="${settings.layout}"]`).checked = true;
         } catch (error) {
-          mediaList.innerHTML = `<tr><td colspan="5" style="color: red;">${error.message}</td></tr>`;
+            console.error('Não foi possível carregar as configurações de layout.', error);
         }
-      }
+    }
 
-      function renderMediaList(data) {
-        mediaList.innerHTML = "";
+    // Ações de Editar, Salvar e Deletar
+    function handleEdit(editButton) {
+        const row = editButton.closest('tr');
+        row.querySelector('.duration-text').style.display = 'none';
+        row.querySelector('.duration-input').style.display = 'inline-block';
+        editButton.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>`;
+        editButton.classList.remove('btn-edit');
+        editButton.classList.add('btn-save');
+    }
+
+    async function handleSave(saveButton) {
+        const row = saveButton.closest('tr');
+        const id = saveButton.dataset.id;
+        const durationInput = row.querySelector('.duration-input');
+        const newDuration = durationInput.value;
+        try {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ duration_seconds: newDuration })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message);
+            showToast('Duração atualizada com sucesso!', 'success');
+            const durationSpan = row.querySelector('.duration-text');
+            durationSpan.textContent = `${newDuration}s`;
+            durationSpan.style.display = 'inline';
+            durationInput.style.display = 'none';
+            saveButton.innerHTML = `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L17.502 3.032z"></path></svg>`;
+            saveButton.classList.remove('btn-save');
+            saveButton.classList.add('btn-edit');
+        } catch(error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    async function handleDelete(id) {
+        try {
+            const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Falha ao excluir a mídia.');
+            showToast('Mídia excluída com sucesso!', 'success');
+            loadMediaList();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    // Renderiza a tabela com os dados da API
+    function renderMediaList(data) {
+        mediaList.innerHTML = '';
         if (data.length === 0) {
-          mediaList.innerHTML =
-            '<tr><td colspan="5">Nenhuma mídia encontrada.</td></tr>';
-          return;
+            mediaList.innerHTML = '<tr><td colspan="5">Nenhuma mídia encontrada.</td></tr>';
+            return;
         }
-        data.forEach((media) => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
+        data.forEach(media => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
                 <td>
-                    ${
-                      media.type === "image"
-                        ? `<img src="${media.url}" alt="${media.fileName}" class="media-preview">`
-                        : `<video src="${media.url}#t=0.1" class="media-preview" muted preload="metadata"></video>`
+                    ${media.type === 'image' ? 
+                        `<img src="${media.url}" alt="${media.fileName}" class="media-preview">` : 
+                        `<video src="${media.url}#t=0.1" class="media-preview" muted preload="metadata"></video>`
                     }
                 </td>
                 <td>${media.fileName}</td>
                 <td>${media.type}</td>
-                <td>${media.duration_seconds}s</td>
                 <td>
-                    <button class="btn-delete" data-id="${media.id}">
+                    <span class="duration-text">${media.duration_seconds}s</span>
+                    <input type="number" value="${media.duration_seconds}" class="duration-input" style="display:none; width: 60px;">
+                </td>
+                <td style="display: flex; gap: 0.5rem;">
+                    <button class="btn-edit" data-id="${media.id}" title="Editar Duração">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.5L17.502 3.032z"></path></svg>
+                    </button>
+                    <button class="btn-delete" data-id="${media.id}" title="Excluir Mídia">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </td>
             `;
-          mediaList.appendChild(row);
+            mediaList.appendChild(row);
         });
-      }
-    </script>
+    }
+</script>
   </body>
 </html>
