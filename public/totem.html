@@ -162,11 +162,16 @@
       // --- FUNÇÕES ---
       async function aplicarLayout() {
         try {
-          const response = await fetch("http://localhost:3000/api/settings");
+          const response = await fetch(
+            "https://totem-api-backend.onrender.com/api/settings"
+          );
           const settings = await response.json();
           document.body.className = `layout-${settings.layout}`;
         } catch (error) {
-          console.error("Falha ao buscar layout, usando padrão infobar.", error);
+          console.error(
+            "Falha ao buscar layout, usando padrão infobar.",
+            error
+          );
           document.body.className = "layout-infobar"; // Fallback
         }
       }
@@ -184,17 +189,22 @@
             second: "2-digit",
           });
           if (clockElement) clockElement.textContent = formattedTime;
-          if (infoClockElement) infoClockElement.textContent = formattedTimeWithSeconds;
+          if (infoClockElement)
+            infoClockElement.textContent = formattedTimeWithSeconds;
         }, 1000);
       }
 
       async function buscarPropagandas() {
         try {
-          const response = await fetch("http://localhost:3000/api/propagandas");
+          const response = await fetch(
+            "https://totem-api-backend.onrender.com/api/propagandas"
+          ); // CORRETO
+
           if (!response.ok) throw new Error("Falha ao buscar dados da API.");
           propagandas = await response.json();
           if (propagandas.length === 0) {
-            mediaContainer.innerHTML = "<h2>Nenhuma propaganda encontrada.</h2>";
+            mediaContainer.innerHTML =
+              "<h2>Nenhuma propaganda encontrada.</h2>";
             return;
           }
           iniciarCiclo();
@@ -207,7 +217,7 @@
 
       function iniciarCiclo() {
         if (propagandas.length === 0) return;
-        
+
         interstitialScreen.style.opacity = "0";
         setTimeout(() => (interstitialScreen.style.display = "none"), 500);
 
@@ -224,7 +234,7 @@
         const backgroundElement = document.createElement(tipoElemento);
         backgroundElement.className = "media-background";
         backgroundElement.src = propaganda.url;
-        
+
         // 2. Cria o elemento PRINCIPAL (à frente)
         const foregroundElement = document.createElement(tipoElemento);
         foregroundElement.className = "media-foreground";
@@ -242,7 +252,7 @@
         mediaContainer.appendChild(backgroundElement);
         mediaContainer.appendChild(foregroundElement);
         // ##################################################################
-        
+
         setTimeout(verificarProximoPasso, propaganda.duration_seconds * 1000);
       }
 

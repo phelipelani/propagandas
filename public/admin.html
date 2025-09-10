@@ -361,8 +361,17 @@
     const fileInput = document.getElementById('fileInput');
     const durationInput = document.getElementById('durationInput');
     const mediaList = document.getElementById('mediaList');
-    const API_URL = 'http://localhost:3000/api/propagandas';
-    const API_SETTINGS_URL = 'http://localhost:3000/api/settings';
+    //const API_URL = 'http://localhost:3000/api/propagandas';
+    //const API_SETTINGS_URL = 'http://localhost:3000/api/settings';
+
+
+
+const BASE_API_URL = 'https://totem-api-backend.onrender.com';
+
+const API_URL = `${BASE_API_URL}/api/propagandas`;
+const API_SETTINGS_URL = `${BASE_API_URL}/api/settings`;
+
+
 
     // --- FUNÇÃO PARA CRIAR NOTIFICAÇÕES (TOASTS) ---
     function showToast(message, type = 'success') {
